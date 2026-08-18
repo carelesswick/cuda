@@ -1,3 +1,4 @@
 {
-    "Codegeex.RepoIndex": true
+    "Codegeex.RepoIndex": true,
+    "cmake.sourceDirectory": "/home/my2204/cuda入门/cuda-samples"
 }
