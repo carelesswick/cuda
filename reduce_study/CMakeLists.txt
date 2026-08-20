@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CUDA_STANDARD 14)
 set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 
-add_executable(reduce_study 01.cu)
+add_executable(reduce_study 01.reduce_sharedMem.cu)
 set_target_properties(reduce_study PROPERTIES
     CUDA_SEPARABLE_COMPILATION ON
 )
