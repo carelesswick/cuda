@@ -6,57 +6,63 @@
 
 #define THREAD_PER_BLOCK 256                    //每一个block的线程数（一般都是设置成256）
 
-// __global__ void reduce(float* d_input,float* d_output)
-// {
-//     int index = blockIdx.x * blockDim.x + threadIdx.x;//全局索引
-//     int tid = threadIdx.x; //块内线程索引
-//     __shared__ float sdata[THREAD_PER_BLOCK];
-//     sdata[threadIdx.x] = d_input[index];
-//     // float * res = nullptr; 不能这么写树状 reduce 的临时数组，必须是__shared__共享内存，不能随便定义普通指针。
-//     // 还有一些CPU端的函数 一般这些封装的函数 都是给CPU用的，cuda内部不可使用
+__global__ void reduce(float* d_input,float* d_output)
+{
+    int index = blockIdx.x * blockDim.x + threadIdx.x;//全局索引
+    int tid = threadIdx.x; 
+    __shared__ float sdata[THREAD_PER_BLOCK];
+    sdata[threadIdx.x] = d_input[index];
+    __syncthreads();//等待搬运完数据
 
-//     //每个块是并行的 因此 需要对每个块内及加规则 因为每个块都是一样的逻辑 想通了这点 就知道是对blockDim.x进行循环
-//     for(int i = 1; i < blockDim.x; i*=2){
-//         if(threadIdx.x % (2*i) == 0){
-//             sdata[threadIdx.x] += sdata[threadIdx.x + i];
-//         }
-//         __syncthreads();
-//     }
-//     if(tid == 0){
-//         d_output[blockIdx.x] = sdata[threadIdx.x];
+    
+    for(int i = 1; i < blockDim.x; i*=2){
+        if(threadIdx.x < (blockDim.x / (2*i))){
 
-//     }
-// }
+            int mid_index = threadIdx.x * 2 * i; 
+            sdata[mid_index] += sdata[mid_index + i];
+        }
+        __syncthreads();
+    }
+    if(tid == 0){
+        d_output[blockIdx.x] = sdata[threadIdx.x];
+
+    }
+}
 
 /////////////////////////////////////////////////////////////
 //更容易理解的方法
 /////////////////////////////////////////////////////////////
-__global__ void reduce(float* d_input,float* d_output)
-{
-    int index = blockIdx.x * blockDim.x + threadIdx.x;
-    int tid = threadIdx.x; 
+// __global__ void reduce(float* d_input,float* d_output)
+// {
+//     int index = blockIdx.x * blockDim.x + threadIdx.x;
+//     int tid = threadIdx.x; 
     
-    //共享内存
-     __shared__ float sdata[THREAD_PER_BLOCK]; 
+//     //共享内存
+//      __shared__ float sdata[THREAD_PER_BLOCK]; 
 
-    //指针 + 整数偏移（确保在每一个块开始的时候都是在 threadIDx.x = 0的起始位置）
-    float *input_begin = blockIdx.x * blockDim.x + d_input;
+//     //指针 + 整数偏移（确保在每一个块开始的时候都是在 threadIDx.x = 0的起始位置）
+//     float *input_begin = blockIdx.x * blockDim.x + d_input;
     
-    //记住并行的思想 搬运数据的时候 block之间是并行搬运的
-    sdata[threadIdx.x] = input_begin[threadIdx.x];
-    __syncthreads();//等待搬运完数据
+//     //记住并行的思想 搬运数据的时候 block之间是并行搬运的
+//     sdata[threadIdx.x] = input_begin[threadIdx.x];
+//     __syncthreads();//等待搬运完数据
 
-    for(int i = 1; i < blockDim.x; i*=2){
-        if(threadIdx.x % (2*i) == 0){
-            sdata[threadIdx.x] += sdata[threadIdx.x + i];
-        }
-        __syncthreads();
-    }
-    if (threadIdx.x == 0)
-    {
-        d_output[blockIdx.x] = sdata[0];
-    }
-}
+//     for(int i = 1; i < blockDim.x; i*=2){
+//         if(threadIdx.x < (blockDim.x / (2*i))){
+//             //因为线程要挨在一起 所以呢索引会改变
+//             int mid_index =threadIdx.x * 2 * i;
+//             sdata[mid_index] += sdata[mid_index + i];
+//         }
+//         // if(threadIdx.x % (2*i) == 0){
+//         //     sdata[threadIdx.x] += sdata[threadIdx.x + i];
+//         // }
+//         __syncthreads();
+//     }
+//     if (threadIdx.x == 0)
+//     {
+//         d_output[blockIdx.x] = sdata[threadIdx.x];
+//     }
+// }
 
 
 bool check(float *out,float *res,int n){
