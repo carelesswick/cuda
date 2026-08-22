@@ -7,7 +7,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CUDA_STANDARD 14)
 set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 
-add_executable(reduce_study 02.reduce_sharedMem_no_divergence.cu)
-set_target_properties(reduce_study PROPERTIES
-    CUDA_SEPARABLE_COMPILATION ON
+add_executable(reduce_study 03.reduce_no_bank_conflict.cu)
+
+target_compile_options(reduce_study PRIVATE
+    $<$<COMPILE_LANGUAGE:CUDA>:-G;-O0;-lineinfo>
 )
